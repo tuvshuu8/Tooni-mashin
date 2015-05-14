@@ -1,0 +1,131 @@
+#include "key_pad.h"
+#include <MY_LCD.c>
+
+unsigned char pressed_key=0x20;
+unsigned char pressed_num=0;
+unsigned char lcd_data[16]={0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20};
+signed char op1=0,op2=0,opcode=0;
+float result=0;
+
+
+void scan_keypad(void);
+
+
+void main()
+{
+  // unsigned char k=0x30;
+   unsigned char i=0;
+   int toggle=0;
+       delay_ms(5);
+       lcd_init();
+       printf(lcd_putc,"       Starting....",);
+       delay_ms(100);
+  
+   scan_keypad();
+       lcd_gotoxy(1,1);
+  
+   set_tris_b(0x0f);
+   set_tris_a(0b11111111);
+   
+   while(true)
+   {
+      //lcd_set_cursor(1,1);
+       scan_keypad();
+       lcd_gotoxy(1,1);
+
+       output_a(toggle);
+       delay_ms(50);
+       toggle =~toggle;
+       output_a(toggle);
+       delay_ms(50);
+      
+      for(i=0;i<15;i++)
+      { 
+         lcd_putc(lcd_data[i]);
+         delay_ms(5);
+      }
+      
+   
+      
+   
+   }
+}//main
+
+void scan_keypad()
+{
+      output_high(PIN_B4);output_low(PIN_B5);output_low(PIN_B6);output_low(PIN_B7);
+      while(input(PIN_B0)==1)pressed_key=0x31;
+      while(input(PIN_B1)==1)pressed_key=0x34;
+      while(input(PIN_B2)==1)pressed_key=0x37;
+      while(input(PIN_B3)==1)(pressed_key=='C'&0x01);
+      
+      output_low(PIN_B4);output_high(PIN_B5);output_low(PIN_B6);output_low(PIN_B7);
+      while(input(PIN_B0)==1)pressed_key=0x32;
+      while(input(PIN_B1)==1)pressed_key=0x35;
+      while(input(PIN_B2)==1)pressed_key=0x38;
+      while(input(PIN_B3)==1)pressed_key=0x30;      
+     
+     output_low(PIN_B4);output_low(PIN_B5);output_high(PIN_B6);output_low(PIN_B7);
+      while(input(PIN_B0)==1)pressed_key=0x33;
+      while(input(PIN_B1)==1)pressed_key=0x36;
+      while(input(PIN_B2)==1)pressed_key=0x39;
+      while(input(PIN_B3)==1)pressed_key='=';
+      
+      output_low(PIN_B4);output_low(PIN_B5);output_low(PIN_B6);output_high(PIN_B7);
+      while(input(PIN_B0)==1)pressed_key='/';
+      while(input(PIN_B1)==1)pressed_key='*';
+      while(input(PIN_B2)==1)pressed_key='-';
+      while(input(PIN_B3)==1)pressed_key='+';
+     
+      if(pressed_key!=0x20)
+      {
+         pressed_num++;
+         if(pressed_key!='+'&&pressed_key!='-'&&pressed_key!='/'&&pressed_key!='*'&&pressed_key!='=')
+         {
+         
+             lcd_data[pressed_num]=pressed_key;
+             if(opcode==0)
+             {
+                op1=op1*10+(pressed_key-0x30);
+             }
+             else
+             {
+                 op2=op2*10+(pressed_key-0x30);
+             }
+            
+            
+         }
+         else 
+         {   
+            if(pressed_key =='=')
+            {
+               switch(opcode)
+               {
+                  case '+':
+                       result=op1+op2;
+                       break;
+                  case '-':
+                     result=op1-op2;
+                     break;
+                  case '*':
+                     result=op1*op2;
+                     break;
+                  case '/':
+                     result=op1/op2;
+                  break;
+               }//switch
+            }//if
+            opcode=pressed_key;
+            lcd_data[pressed_num]=pressed_key;
+         }
+        
+         if(pressed_key=='=')
+         {
+            lcd_gotoxy(1,2);
+            printf(lcd_putc,"              %u",result);
+            printf("xariu %f \n",result);
+         }
+         pressed_key=0x20;
+      }
+
+}
